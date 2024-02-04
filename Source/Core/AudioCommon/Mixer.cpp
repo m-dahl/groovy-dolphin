@@ -15,6 +15,7 @@
 #include "Core/Config/MainSettings.h"
 #include "Core/ConfigManager.h"
 #include "VideoCommon/PerformanceMetrics.h"
+#include "VideoCommon/Mister.h"
 
 static u32 DPL2QualityToFrameBlockSize(AudioCommon::DPL2Quality quality)
 {
@@ -210,6 +211,15 @@ unsigned int Mixer::Mix(short* samples, unsigned int num_samples)
       mixer.Mix(samples, num_samples, true, emulation_speed, timing_variance);
     m_is_stretching = false;
   }
+
+  // Copy audio samples to groovy mister thread to be sent over network.
+  std::lock_guard<std::mutex> lock(g_mister.m_audio_buffer_mutex);
+  const size_t num_channels = 2; // hardcoded...
+  size_t to_copy = std::min((size_t)(num_samples),
+                            (MISTER_SOUND_BUFFER_SIZE/num_channels) - g_mister.audio_buffer_len);
+  memcpy(g_mister.m_audio_buffer.data() + num_channels * g_mister.audio_buffer_len,
+         samples, to_copy * num_channels * sizeof(short));
+  g_mister.audio_buffer_len += to_copy;
 
   return num_samples;
 }

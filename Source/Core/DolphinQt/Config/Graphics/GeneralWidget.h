@@ -15,6 +15,7 @@ class GraphicsWindow;
 class QCheckBox;
 class QComboBox;
 class QLabel;
+class QLineEdit;
 class QRadioButton;
 class QGridLayout;
 class ToolTipComboBox;
@@ -56,4 +57,10 @@ private:
   ConfigBool* m_render_main_window;
   std::array<ConfigRadioInt*, 4> m_shader_compilation_mode{};
   ConfigBool* m_wait_for_shaders;
+
+  // Groovy Mister
+  ConfigBool* m_groovy_hardcoded_vsync;
+  ConfigInteger* m_groovy_vsync;
+  ConfigBool* m_groovy_downscale;
+  QLineEdit* m_groovy_ip;
 };

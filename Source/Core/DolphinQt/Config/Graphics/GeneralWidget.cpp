@@ -7,6 +7,7 @@
 #include <QComboBox>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QLineEdit>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QRadioButton>
@@ -26,6 +27,7 @@
 #include "DolphinQt/Config/ToolTipControls/ToolTipComboBox.h"
 #include "DolphinQt/QtUtils/ModalMessageBox.h"
 #include "DolphinQt/QtUtils/SetWindowDecorations.h"
+#include "DolphinQt/QtUtils/SignalBlocking.h"
 #include "DolphinQt/Settings.h"
 
 #include "VideoCommon/VideoBackendBase.h"
@@ -137,9 +139,24 @@ void GeneralWidget::CreateWidgets()
   shader_compilation_layout->addWidget(m_wait_for_shaders);
   shader_compilation_box->setLayout(shader_compilation_layout);
 
+  // Groovy MiSTer
+  auto* groovy_mister_box = new QGroupBox(tr("Groovy MiSTer"));
+  auto* groovy_mister_layout = new QGridLayout();
+  groovy_mister_layout->addWidget(new QLabel(tr("MiSTer ip:")), 0, 0);
+  m_groovy_ip = new QLineEdit();
+  groovy_mister_layout->addWidget(m_groovy_ip, 0, 1);
+  m_groovy_downscale = new ConfigBool(tr("Downscale to 240p"), Config::GFX_GROOVY_DOWNSCALE_TO_240P);
+  groovy_mister_layout->addWidget(m_groovy_downscale, 1, 1);
+  m_groovy_hardcoded_vsync = new ConfigBool(tr("Hardcoded V-Sync"), Config::GFX_GROOVY_HARDCODED_VSYNC);
+  groovy_mister_layout->addWidget(m_groovy_hardcoded_vsync, 1, 2);
+  m_groovy_vsync = new ConfigInteger(1, 400, Config::GFX_GROOVY_VSYNC);
+  groovy_mister_layout->addWidget(m_groovy_vsync, 1, 3);
+  groovy_mister_box->setLayout(groovy_mister_layout);
+
   main_layout->addWidget(m_video_box);
   main_layout->addWidget(m_options_box);
   main_layout->addWidget(shader_compilation_box);
+  main_layout->addWidget(groovy_mister_box);
   main_layout->addStretch();
 
   setLayout(main_layout);
@@ -147,6 +164,9 @@ void GeneralWidget::CreateWidgets()
 
 void GeneralWidget::ConnectWidgets()
 {
+    // Groovy
+    connect(m_groovy_ip, &QLineEdit::editingFinished, this, &GeneralWidget::SaveSettings);
+
   // Video Backend
   connect(m_backend_combo, &QComboBox::currentIndexChanged, this, &GeneralWidget::SaveSettings);
   connect(m_adapter_combo, &QComboBox::currentIndexChanged, this, [&](int index) {
@@ -166,6 +186,10 @@ void GeneralWidget::ConnectWidgets()
 
 void GeneralWidget::LoadSettings()
 {
+  // Groovy
+  SignalBlocking(m_groovy_ip)
+      ->setText(QString::fromStdString(Config::Get(Config::GFX_GROOVY_IP)));
+
   // Video Backend
   m_backend_combo->setCurrentIndex(m_backend_combo->findData(
       QVariant(QString::fromStdString(Config::Get(Config::MAIN_GFX_BACKEND)))));
@@ -180,6 +204,9 @@ void GeneralWidget::LoadSettings()
 
 void GeneralWidget::SaveSettings()
 {
+  // Groovy Mister
+  Config::SetBaseOrCurrent(Config::GFX_GROOVY_IP, m_groovy_ip->text().toStdString());
+
   // Video Backend
   const auto current_backend = m_backend_combo->currentData().toString().toStdString();
   if (Config::Get(Config::MAIN_GFX_BACKEND) == current_backend)

@@ -18,6 +18,10 @@ enum class TriState : int;
 namespace Config
 {
 // Configuration Information
+extern const Info<bool> GFX_GROOVY_HARDCODED_VSYNC;
+extern const Info<int> GFX_GROOVY_VSYNC;
+extern const Info<bool> GFX_GROOVY_DOWNSCALE_TO_240P;
+extern const Info<std::string> GFX_GROOVY_IP;
 
 // Graphics.Hardware
 

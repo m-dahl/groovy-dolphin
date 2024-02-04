@@ -11,6 +11,8 @@
 #include "VideoCommon/TextureConfig.h"
 #include "VideoCommon/VideoCommon.h"
 
+#include "VideoCommon/Mister.h"
+
 #include <array>
 #include <memory>
 #include <mutex>
@@ -129,6 +131,10 @@ private:
   void* m_new_surface_handle = nullptr;
   Common::Flag m_surface_changed;
   Common::Flag m_surface_resized;
+
+  // Groovy mister stuff
+  std::unique_ptr<AbstractStagingTexture> m_mister_readback_texture;
+  bool m_mister_init = false;
 
   // The presentation rectangle.
   // Width and height correspond to the final output resolution.

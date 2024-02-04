@@ -719,6 +719,107 @@ void Presenter::Present()
     auto render_source_rc = m_xfb_rect;
     AdjustRectanglesToFitBounds(&render_target_rc, &render_source_rc, m_backbuffer_width,
                                 m_backbuffer_height);
+
+    // Dump backbuffer contents to mister.
+    const AbstractTexture* st = m_xfb_entry->texture.get();
+
+    // groovy mister fb
+    static char tmp_buffer[3 * 640 * 240];
+
+    // Check/create readback texture
+    {
+      u32 width = st->GetWidth();
+      u32 height = st->GetHeight();
+
+      std::unique_ptr<AbstractStagingTexture>& rbtex = m_mister_readback_texture;
+      if (!rbtex || rbtex->GetWidth() != width || rbtex->GetHeight() != height) {
+
+        rbtex.reset();
+        rbtex = g_gfx->CreateStagingTexture(StagingTextureType::Readback,
+                                            TextureConfig(width, height, 1, 1, 1,
+                                                          AbstractTextureFormat::RGBA8, 0,
+                                                          AbstractTextureType::Texture_2DArray));
+      }
+      // Clear old buffer contents in case new render target is smaller.
+      memset(tmp_buffer, 0, sizeof(tmp_buffer));
+    }
+
+    m_mister_readback_texture->CopyFromTexture(m_xfb_entry->texture.get(), m_xfb_rect, 0, 0,
+                                               m_mister_readback_texture->GetRect());
+
+    // We have the texture, now dump it to bytes.
+    auto& output = m_mister_readback_texture;
+    if (output->Map())
+    {
+      u8 *bytes = reinterpret_cast<u8*>(output->GetMappedPointer());
+      int w = output->GetConfig().width;
+      int h = output->GetConfig().height;
+      size_t stride = output->GetMappedStride();
+
+      if(!m_mister_init) {
+        // First run, set up groovy connection.
+        std::string ip = Config::Get(Config::GFX_GROOVY_IP);
+        printf("Groovy MiSTer connecting to: %s\n", ip.c_str());
+        g_mister.CmdInit(ip.c_str(), 32100, true, 48000, 2);
+        bool downscale = Config::Get(Config::GFX_GROOVY_DOWNSCALE_TO_240P);
+        if(downscale || h == 240) {
+          g_mister.CmdSwitchres240p();
+        } else {
+          g_mister.CmdSwitchres480i();
+        }
+        m_mister_init = true;
+        g_mister.SetStartEmulate();
+      } else {
+        // Change downscale option on the fly
+        bool downscale = Config::Get(Config::GFX_GROOVY_DOWNSCALE_TO_240P);
+        if(h > 240 && downscale && g_mister.isInterlaced()) {
+          g_mister.CmdSwitchres240p();
+        } else if(h > 240 && !downscale && !g_mister.isInterlaced()) {
+          g_mister.CmdSwitchres480i();
+        }
+      }
+
+      {
+        g_mister.SetEndEmulate();
+        g_mister.SetStartBlit();
+
+        int y_inc = h > 240 ? 2 : 1;
+        size_t tmp_inc = 0;
+
+        // For now, just testing with known resolutions (no PAL)
+        w = std::min(w, 640);
+        h = std::min(h, 480);
+
+        for(int y = g_mister.GetField(); y < 240*y_inc && y < h; y+=y_inc) {
+          for(int x = 0; x < w; ++x) {
+            int r = bytes[x*4 + y*stride + 0];
+            int g = bytes[x*4 + y*stride + 1];
+            int b = bytes[x*4 + y*stride + 2];
+
+            tmp_buffer[tmp_inc] = b;
+            tmp_buffer[tmp_inc+1] = g;
+            tmp_buffer[tmp_inc+2] = r;
+            tmp_inc += 3;
+          }
+        }
+
+        // Send audio data.
+        {
+          std::lock_guard<std::mutex> lock(g_mister.m_audio_buffer_mutex);
+          g_mister.CmdAudio(g_mister.m_audio_buffer.data(), g_mister.audio_buffer_len, 2);
+          g_mister.audio_buffer_len = 0;
+        }
+
+        // Send video data
+        bool hardcoded_vsync = Config::Get(Config::GFX_GROOVY_HARDCODED_VSYNC);
+        int vsync = Config::Get(Config::GFX_GROOVY_VSYNC);
+        g_mister.CmdBlit((char *)&tmp_buffer[0], hardcoded_vsync?vsync:0);
+        g_mister.SetEndBlit();
+        g_mister.Sync();
+        g_mister.SetStartEmulate();
+      }
+    }
+
     RenderXFBToScreen(render_target_rc, m_xfb_entry->texture.get(), render_source_rc);
   }
 
