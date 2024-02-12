@@ -806,7 +806,7 @@ void Presenter::Present()
         // Send audio data.
         {
           std::lock_guard<std::mutex> lock(g_mister.m_audio_buffer_mutex);
-          g_mister.CmdAudio(g_mister.m_audio_buffer.data(), g_mister.audio_buffer_len, 2);
+          g_mister.CmdAudio(g_mister.m_audio_buffer.data(), (uint32_t)g_mister.audio_buffer_len, 2);
           g_mister.audio_buffer_len = 0;
         }
 

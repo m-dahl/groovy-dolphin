@@ -25,9 +25,6 @@
  #include <unistd.h>
 #endif
 
-#include <lz4.h>
-#include <lz4hc.h>
-
 #ifdef WIN32
  #define SR_WIN32_STATIC
 #endif

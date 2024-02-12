@@ -706,6 +706,7 @@
     <ClInclude Include="VideoCommon\IndexGenerator.h" />
     <ClInclude Include="VideoCommon\LightingShaderGen.h" />
     <ClInclude Include="VideoCommon\LookUpTables.h" />
+    <ClInclude Include="VideoCommon\Mister.h" />
     <ClInclude Include="VideoCommon\NativeVertexFormat.h" />
     <ClInclude Include="VideoCommon\NetPlayChatUI.h" />
     <ClInclude Include="VideoCommon\NetPlayGolfUI.h" />
@@ -1332,6 +1333,7 @@
     <ClCompile Include="VideoCommon\HiresTextures.cpp" />
     <ClCompile Include="VideoCommon\IndexGenerator.cpp" />
     <ClCompile Include="VideoCommon\LightingShaderGen.cpp" />
+    <ClCompile Include="VideoCommon\Mister.cpp" />
     <ClCompile Include="VideoCommon\NetPlayChatUI.cpp" />
     <ClCompile Include="VideoCommon\NetPlayGolfUI.cpp" />
     <ClCompile Include="VideoCommon\OnScreenDisplay.cpp" />
