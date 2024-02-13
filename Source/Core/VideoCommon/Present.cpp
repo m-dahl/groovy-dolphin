@@ -759,7 +759,7 @@ void Presenter::Present()
       if(!m_mister_init) {
         // First run, set up groovy connection.
         std::string ip = Config::Get(Config::GFX_GROOVY_IP);
-        printf("Groovy MiSTer connecting to: %s\n", ip.c_str());
+        printf("Groovy MiSTer connecting to: %s, backbuffer size: (%dx%d)\n", ip.c_str(),w,h);
         g_mister.CmdInit(ip.c_str(), 32100, true, 48000, 2);
         bool downscale = Config::Get(Config::GFX_GROOVY_DOWNSCALE_TO_240P);
         if(downscale || h == 240) {
@@ -784,22 +784,34 @@ void Presenter::Present()
         g_mister.SetStartBlit();
 
         int y_inc = h > 240 ? 2 : 1;
-        size_t tmp_inc = 0;
 
         // For now, just testing with known resolutions (no PAL)
         w = std::min(w, 640);
         h = std::min(h, 480);
 
-        for(int y = g_mister.GetField(); y < 240*y_inc && y < h; y+=y_inc) {
-          for(int x = 0; x < w; ++x) {
-            int r = bytes[x*4 + y*stride + 0];
-            int g = bytes[x*4 + y*stride + 1];
-            int b = bytes[x*4 + y*stride + 2];
+        // Handle lower resolutions
+        int mister_left_offset = 0;
+        int mister_top_offset = 0;
+        if(w < 640) {
+          mister_left_offset = (640 - w)/2;
+        }
+        if(h < 240) {
+          mister_top_offset = (240 - h)/2;
+        } else if(h < 480) {
+          mister_top_offset = (480 - h)/2;
+        }
 
-            tmp_buffer[tmp_inc] = b;
-            tmp_buffer[tmp_inc+1] = g;
-            tmp_buffer[tmp_inc+2] = r;
-            tmp_inc += 3;
+        int start_field = g_mister.GetField();
+        for(int y = 0; y < h; y+=y_inc) {
+          for(int x = 0; x < w; ++x) {
+            int r = bytes[x*4 + (y+start_field)*stride + 0];
+            int g = bytes[x*4 + (y+start_field)*stride + 1];
+            int b = bytes[x*4 + (y+start_field)*stride + 2];
+
+            int pixel = mister_left_offset + x + ((mister_top_offset + y)/y_inc) * 640;
+            tmp_buffer[3*pixel] = b;
+            tmp_buffer[3*pixel+1] = g;
+            tmp_buffer[3*pixel+2] = r;
           }
         }
 
