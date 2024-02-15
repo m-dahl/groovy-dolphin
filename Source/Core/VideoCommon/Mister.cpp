@@ -280,6 +280,53 @@ void MiSTer::CmdSwitchres480i()
     Send(&buffer[0], 26);
 }
 
+void MiSTer::CmdSwitchres480p()
+{
+    char buffer[26];
+
+    // VGA modeline.
+    // ModeLine "640x480_60" 25.174825174825 640 656 752 800 480 490 492 525 -hsync -vsync
+
+    double px = 25.174825174825;
+    uint16_t udp_hactive = 640;
+    uint16_t udp_hbegin = 656;
+    uint16_t udp_hend = 752;
+    uint16_t udp_htotal = 800;
+    uint16_t udp_vactive = 480;
+    uint16_t udp_vbegin = 490;
+    uint16_t udp_vend = 492;
+    uint16_t udp_vtotal = 525;
+    uint8_t  udp_interlace = 0;
+
+    width = udp_hactive;
+    height = udp_vactive;
+    lines = udp_vtotal;
+    interlaced = udp_interlace;
+
+    widthTime = round((double) udp_htotal * (1 / px)); //in usec, time to raster 1 line
+    frameTime = widthTime * udp_vtotal;
+
+    if (interlaced)
+    {
+        frameField = 0;
+        frameTime = frameTime >> 1;
+    }
+
+    //printf("[DEBUG] Sending CMD_SWITCHRES...\n");
+    buffer[0] = CMD_SWITCHRES;
+    memcpy(&buffer[1],&px,sizeof(px));
+    memcpy(&buffer[9],&udp_hactive,sizeof(udp_hactive));
+    memcpy(&buffer[11],&udp_hbegin,sizeof(udp_hbegin));
+    memcpy(&buffer[13],&udp_hend,sizeof(udp_hend));
+    memcpy(&buffer[15],&udp_htotal,sizeof(udp_htotal));
+    memcpy(&buffer[17],&udp_vactive,sizeof(udp_vactive));
+    memcpy(&buffer[19],&udp_vbegin,sizeof(udp_vbegin));
+    memcpy(&buffer[21],&udp_vend,sizeof(udp_vend));
+    memcpy(&buffer[23],&udp_vtotal,sizeof(udp_vtotal));
+    memcpy(&buffer[25],&udp_interlace,sizeof(udp_interlace));
+    Send(&buffer[0], 26);
+}
+
 void MiSTer::CmdBlit(char *bufferFrame, uint16_t vsync)
 {
    char buffer[9];

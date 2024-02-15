@@ -20,7 +20,13 @@ namespace Config
 // Configuration Information
 extern const Info<bool> GFX_GROOVY_HARDCODED_VSYNC;
 extern const Info<int> GFX_GROOVY_VSYNC;
-extern const Info<bool> GFX_GROOVY_DOWNSCALE_TO_240P;
+enum class GroovyVideoMode
+{
+  GV240p,
+  GV480i,
+  GV480p,
+};
+extern const Info<GroovyVideoMode> GFX_GROOVY_VIDEO_MODE;
 extern const Info<std::string> GFX_GROOVY_IP;
 
 // Graphics.Hardware

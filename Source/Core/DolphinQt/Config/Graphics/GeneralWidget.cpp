@@ -145,12 +145,25 @@ void GeneralWidget::CreateWidgets()
   groovy_mister_layout->addWidget(new QLabel(tr("MiSTer ip:")), 0, 0);
   m_groovy_ip = new QLineEdit();
   groovy_mister_layout->addWidget(m_groovy_ip, 0, 1);
-  m_groovy_downscale = new ConfigBool(tr("Downscale to 240p"), Config::GFX_GROOVY_DOWNSCALE_TO_240P);
-  groovy_mister_layout->addWidget(m_groovy_downscale, 1, 1);
   m_groovy_hardcoded_vsync = new ConfigBool(tr("Hardcoded V-Sync"), Config::GFX_GROOVY_HARDCODED_VSYNC);
-  groovy_mister_layout->addWidget(m_groovy_hardcoded_vsync, 1, 2);
+  groovy_mister_layout->addWidget(m_groovy_hardcoded_vsync, 1, 0);
   m_groovy_vsync = new ConfigInteger(1, 400, Config::GFX_GROOVY_VSYNC);
-  groovy_mister_layout->addWidget(m_groovy_vsync, 1, 3);
+  groovy_mister_layout->addWidget(m_groovy_vsync, 1, 1);
+
+  auto* groovy_video_groupbox = new QGroupBox(tr("Video output"));
+  auto* groovy_video_vboxlayout = new QVBoxLayout;
+  groovy_video_groupbox->setLayout(groovy_video_vboxlayout);
+
+  m_groovy_240p = new QRadioButton(tr("240p"));
+  m_groovy_480i = new QRadioButton(tr("480i"));
+  m_groovy_480p = new QRadioButton(tr("480p"));
+
+  groovy_video_vboxlayout->addWidget(m_groovy_240p);
+  groovy_video_vboxlayout->addWidget(m_groovy_480i);
+  groovy_video_vboxlayout->addWidget(m_groovy_480p);
+  groovy_video_vboxlayout->addStretch();
+  groovy_mister_layout->addWidget(groovy_video_groupbox, 0, 2, 2, 1);
+
   groovy_mister_box->setLayout(groovy_mister_layout);
 
   main_layout->addWidget(m_video_box);
@@ -164,8 +177,11 @@ void GeneralWidget::CreateWidgets()
 
 void GeneralWidget::ConnectWidgets()
 {
-    // Groovy
-    connect(m_groovy_ip, &QLineEdit::editingFinished, this, &GeneralWidget::SaveSettings);
+  // Groovy
+  connect(m_groovy_ip, &QLineEdit::editingFinished, this, &GeneralWidget::SaveSettings);
+  connect(m_groovy_480p, &QRadioButton::toggled, this, &GeneralWidget::SaveSettings);
+  connect(m_groovy_480i, &QRadioButton::toggled, this, &GeneralWidget::SaveSettings);
+  connect(m_groovy_240p, &QRadioButton::toggled, this, &GeneralWidget::SaveSettings);
 
   // Video Backend
   connect(m_backend_combo, &QComboBox::currentIndexChanged, this, &GeneralWidget::SaveSettings);
@@ -190,6 +206,14 @@ void GeneralWidget::LoadSettings()
   SignalBlocking(m_groovy_ip)
       ->setText(QString::fromStdString(Config::Get(Config::GFX_GROOVY_IP)));
 
+  if(Config::Get(Config::GFX_GROOVY_VIDEO_MODE) == Config::GroovyVideoMode::GV480p) {
+    SignalBlocking(m_groovy_480p)->setChecked(true);
+  } else if(Config::Get(Config::GFX_GROOVY_VIDEO_MODE) == Config::GroovyVideoMode::GV480i) {
+    SignalBlocking(m_groovy_480i)->setChecked(true);
+  } else {
+    SignalBlocking(m_groovy_240p)->setChecked(true);
+  }
+
   // Video Backend
   m_backend_combo->setCurrentIndex(m_backend_combo->findData(
       QVariant(QString::fromStdString(Config::Get(Config::MAIN_GFX_BACKEND)))));
@@ -206,6 +230,16 @@ void GeneralWidget::SaveSettings()
 {
   // Groovy Mister
   Config::SetBaseOrCurrent(Config::GFX_GROOVY_IP, m_groovy_ip->text().toStdString());
+
+  if(m_groovy_480p->isChecked()) {
+    Config::SetBaseOrCurrent(Config::GFX_GROOVY_VIDEO_MODE, Config::GroovyVideoMode::GV480p);
+  }
+  if(m_groovy_480i->isChecked()) {
+    Config::SetBaseOrCurrent(Config::GFX_GROOVY_VIDEO_MODE, Config::GroovyVideoMode::GV480i);
+  }
+  if(m_groovy_240p->isChecked()) {
+    Config::SetBaseOrCurrent(Config::GFX_GROOVY_VIDEO_MODE, Config::GroovyVideoMode::GV240p);
+  }
 
   // Video Backend
   const auto current_backend = m_backend_combo->currentData().toString().toStdString();

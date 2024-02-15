@@ -13,7 +13,8 @@ namespace Config
 // Configuration Information
 const Info<bool> GFX_GROOVY_HARDCODED_VSYNC{{System::GFX, "Groovy", "HardcodedVSync"}, false};
 const Info<int> GFX_GROOVY_VSYNC{{System::GFX, "Groovy", "VSync"}, 120};
-const Info<bool> GFX_GROOVY_DOWNSCALE_TO_240P{{System::GFX, "Groovy", "Downscale"}, true};
+const Info<GroovyVideoMode> GFX_GROOVY_VIDEO_MODE{{System::GFX, "Groovy", "VideoMode"},
+                                                  GroovyVideoMode::GV240p};
 const Info<std::string> GFX_GROOVY_IP{{System::GFX, "Groovy", "MisterIp"}, "192.168.3.10"};
 
 // Graphics.Hardware

@@ -69,6 +69,7 @@ class MiSTer
  void CmdInit(const char* mister_host, short mister_port, bool lz4_frames, uint32_t sound_rate, uint8_t sound_chan);
  void CmdSwitchres240p();
  void CmdSwitchres480i();
+ void CmdSwitchres480p();
  void CmdBlit(char *bufferFrame, uint16_t vsync);
  void CmdAudio(const void *bufferFrame, uint32_t sizeSound, uint8_t soundchan);
 

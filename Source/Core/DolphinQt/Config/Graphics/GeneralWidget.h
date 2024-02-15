@@ -60,7 +60,9 @@ private:
 
   // Groovy Mister
   ConfigBool* m_groovy_hardcoded_vsync;
+  QRadioButton* m_groovy_240p;
+  QRadioButton* m_groovy_480i;
+  QRadioButton* m_groovy_480p;
   ConfigInteger* m_groovy_vsync;
-  ConfigBool* m_groovy_downscale;
   QLineEdit* m_groovy_ip;
 };

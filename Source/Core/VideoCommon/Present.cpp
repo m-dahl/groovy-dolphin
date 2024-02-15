@@ -724,7 +724,7 @@ void Presenter::Present()
     const AbstractTexture* st = m_xfb_entry->texture.get();
 
     // groovy mister fb
-    static char tmp_buffer[3 * 640 * 240];
+    static char tmp_buffer[3 * 640 * 480];
 
     // Check/create readback texture
     {
@@ -761,21 +761,32 @@ void Presenter::Present()
         std::string ip = Config::Get(Config::GFX_GROOVY_IP);
         printf("Groovy MiSTer connecting to: %s, backbuffer size: (%dx%d)\n", ip.c_str(),w,h);
         g_mister.CmdInit(ip.c_str(), 32100, true, 48000, 2);
-        bool downscale = Config::Get(Config::GFX_GROOVY_DOWNSCALE_TO_240P);
-        if(downscale || h == 240) {
+        auto mode = Config::Get(Config::GFX_GROOVY_VIDEO_MODE);
+        if(h == 240 || mode == Config::GroovyVideoMode::GV240p) {
+          // If the game is 240p native, use that regardless, otherwise we need to
+          // line double
+          printf("Groovy MiSTer setting 240p video\n");
           g_mister.CmdSwitchres240p();
-        } else {
+        } else if(mode == Config::GroovyVideoMode::GV480i) {
+          printf("Groovy MiSTer setting 480i video\n");
           g_mister.CmdSwitchres480i();
+        } else { // 480p
+          printf("Groovy MiSTer setting 480p video\n");
+          g_mister.CmdSwitchres480p();
         }
         m_mister_init = true;
         g_mister.SetStartEmulate();
       } else {
-        // Change downscale option on the fly
-        bool downscale = Config::Get(Config::GFX_GROOVY_DOWNSCALE_TO_240P);
-        if(h > 240 && downscale && g_mister.isInterlaced()) {
-          g_mister.CmdSwitchres240p();
-        } else if(h > 240 && !downscale && !g_mister.isInterlaced()) {
-          g_mister.CmdSwitchres480i();
+        // Allow setting video mode on the fly.
+        auto mode = Config::Get(Config::GFX_GROOVY_VIDEO_MODE);
+        if(h > 240) { // Only care if we are not 240p native.
+          if(mode == Config::GroovyVideoMode::GV240p && (g_mister.isInterlaced() || g_mister.is480p())) {
+            g_mister.CmdSwitchres240p();
+          } else if(mode == Config::GroovyVideoMode::GV480i && (!g_mister.isInterlaced() || g_mister.is480p())) {
+            g_mister.CmdSwitchres480i();
+          } else if(mode == Config::GroovyVideoMode::GV480p && !g_mister.is480p()) {
+            g_mister.CmdSwitchres480p();
+          }
         }
       }
 
@@ -783,7 +794,7 @@ void Presenter::Present()
         g_mister.SetEndEmulate();
         g_mister.SetStartBlit();
 
-        int y_inc = h > 240 ? 2 : 1;
+        int y_inc = (h > 240 && !g_mister.is480p()) ? 2 : 1;
 
         // For now, just testing with known resolutions (no PAL)
         w = std::min(w, 640);
