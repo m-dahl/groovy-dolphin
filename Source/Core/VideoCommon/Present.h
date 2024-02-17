@@ -134,6 +134,8 @@ private:
 
   // Groovy mister stuff
   std::unique_ptr<AbstractStagingTexture> m_mister_readback_texture;
+  std::unique_ptr<AbstractTexture> m_mister_scaling_texture;
+  std::unique_ptr<AbstractFramebuffer> m_mister_scaling_framebuffer;
   bool m_mister_init = false;
 
   // The presentation rectangle.

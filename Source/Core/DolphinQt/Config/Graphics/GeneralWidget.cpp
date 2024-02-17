@@ -145,10 +145,14 @@ void GeneralWidget::CreateWidgets()
   groovy_mister_layout->addWidget(new QLabel(tr("MiSTer ip:")), 0, 0);
   m_groovy_ip = new QLineEdit();
   groovy_mister_layout->addWidget(m_groovy_ip, 0, 1);
+  m_groovy_fill_screen = new ConfigBool(tr("Scale contents to fill screen"),
+                                        Config::GFX_GROOVY_SCALE);
+  groovy_mister_layout->addWidget(m_groovy_fill_screen, 1, 0, 1, 2);
+
   m_groovy_hardcoded_vsync = new ConfigBool(tr("Hardcoded V-Sync"), Config::GFX_GROOVY_HARDCODED_VSYNC);
-  groovy_mister_layout->addWidget(m_groovy_hardcoded_vsync, 1, 0);
+  groovy_mister_layout->addWidget(m_groovy_hardcoded_vsync, 2, 0);
   m_groovy_vsync = new ConfigInteger(1, 400, Config::GFX_GROOVY_VSYNC);
-  groovy_mister_layout->addWidget(m_groovy_vsync, 1, 1);
+  groovy_mister_layout->addWidget(m_groovy_vsync, 2, 1);
 
   auto* groovy_video_groupbox = new QGroupBox(tr("Video output"));
   auto* groovy_video_vboxlayout = new QVBoxLayout;
@@ -162,7 +166,7 @@ void GeneralWidget::CreateWidgets()
   groovy_video_vboxlayout->addWidget(m_groovy_480i);
   groovy_video_vboxlayout->addWidget(m_groovy_480p);
   groovy_video_vboxlayout->addStretch();
-  groovy_mister_layout->addWidget(groovy_video_groupbox, 0, 2, 2, 1);
+  groovy_mister_layout->addWidget(groovy_video_groupbox, 0, 3, 3, 1);
 
   groovy_mister_box->setLayout(groovy_mister_layout);
 

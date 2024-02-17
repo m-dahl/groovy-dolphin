@@ -19,6 +19,7 @@ namespace Config
 {
 // Configuration Information
 extern const Info<bool> GFX_GROOVY_HARDCODED_VSYNC;
+extern const Info<bool> GFX_GROOVY_SCALE;
 extern const Info<int> GFX_GROOVY_VSYNC;
 enum class GroovyVideoMode
 {

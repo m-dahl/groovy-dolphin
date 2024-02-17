@@ -60,6 +60,7 @@ private:
 
   // Groovy Mister
   ConfigBool* m_groovy_hardcoded_vsync;
+  ConfigBool* m_groovy_fill_screen;
   QRadioButton* m_groovy_240p;
   QRadioButton* m_groovy_480i;
   QRadioButton* m_groovy_480p;

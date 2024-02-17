@@ -1,6 +1,5 @@
 // Copyright 2023 Dolphin Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
-
 #include "VideoCommon/Present.h"
 
 #include "Common/ChunkFile.h"
@@ -153,7 +152,8 @@ void Presenter::ViSwap(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height,
 
   BeforePresentEvent::Trigger(present_info);
 
-  if (!is_duplicate || !g_ActiveConfig.bSkipPresentingDuplicateXFBs)
+  // If using groovy, render all frames.
+  // if (!is_duplicate || !g_ActiveConfig.bSkipPresentingDuplicateXFBs)
   {
     Present();
     ProcessFrameDumping(ticks);
@@ -726,10 +726,36 @@ void Presenter::Present()
     // groovy mister fb
     static char tmp_buffer[3 * 640 * 480];
 
+    // Scale or render fb as is
+    bool do_scaling = false;
+
     // Check/create readback texture
     {
       u32 width = st->GetWidth();
       u32 height = st->GetHeight();
+
+      if(Config::Get(Config::GFX_GROOVY_SCALE) &&
+         (width != 640 || height != 480)) {
+          do_scaling = true;
+          width = 640;
+          height = 480;
+
+          // Check/create scaled texture
+          std::unique_ptr<AbstractTexture>& scaletex = m_mister_scaling_texture;
+          if (!scaletex || scaletex->GetWidth() != width || scaletex->GetHeight() != height) {
+
+              m_mister_scaling_framebuffer.reset();
+              scaletex.reset();
+              scaletex = g_gfx->CreateTexture(TextureConfig(width, height, 1, 1, 1,
+                                                            AbstractTextureFormat::RGBA8,
+                                                            AbstractTextureFlag_RenderTarget,
+                                                            AbstractTextureType::Texture_2DArray),
+                                              "Mister scaling render texture");
+
+              m_mister_scaling_framebuffer =
+                  g_gfx->CreateFramebuffer(m_mister_scaling_texture.get(), nullptr);
+          }
+      }
 
       std::unique_ptr<AbstractStagingTexture>& rbtex = m_mister_readback_texture;
       if (!rbtex || rbtex->GetWidth() != width || rbtex->GetHeight() != height) {
@@ -744,11 +770,24 @@ void Presenter::Present()
       memset(tmp_buffer, 0, sizeof(tmp_buffer));
     }
 
-    m_mister_readback_texture->CopyFromTexture(m_xfb_entry->texture.get(), m_xfb_rect, 0, 0,
-                                               m_mister_readback_texture->GetRect());
+    // Copy render texture, scaling if needed
+    if(do_scaling) {
+        auto current_fb = g_gfx->GetCurrentFramebuffer();
+        g_gfx->ScaleTexture(m_mister_scaling_framebuffer.get(),
+                            m_mister_scaling_framebuffer->GetRect(),
+                            m_xfb_entry->texture.get(), m_xfb_rect);
+        m_mister_readback_texture->CopyFromTexture(m_mister_scaling_texture.get(),
+                                                   m_mister_scaling_texture->GetRect(), 0, 0,
+                                                   m_mister_readback_texture->GetRect());
+        g_gfx->SetFramebuffer(current_fb);
+    } else {
+        m_mister_readback_texture->CopyFromTexture(m_xfb_entry->texture.get(), m_xfb_rect, 0, 0,
+                                                   m_mister_readback_texture->GetRect());
+    }
 
     // We have the texture, now dump it to bytes.
     auto& output = m_mister_readback_texture;
+    output->Flush();
     if (output->Map())
     {
       u8 *bytes = reinterpret_cast<u8*>(output->GetMappedPointer());
@@ -825,6 +864,8 @@ void Presenter::Present()
             tmp_buffer[3*pixel+2] = r;
           }
         }
+
+        output->Unmap();
 
         // Send audio data.
         {

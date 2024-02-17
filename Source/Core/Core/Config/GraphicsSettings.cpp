@@ -12,6 +12,7 @@ namespace Config
 {
 // Configuration Information
 const Info<bool> GFX_GROOVY_HARDCODED_VSYNC{{System::GFX, "Groovy", "HardcodedVSync"}, false};
+const Info<bool> GFX_GROOVY_SCALE{{System::GFX, "Groovy", "Scale"}, true};
 const Info<int> GFX_GROOVY_VSYNC{{System::GFX, "Groovy", "VSync"}, 120};
 const Info<GroovyVideoMode> GFX_GROOVY_VIDEO_MODE{{System::GFX, "Groovy", "VideoMode"},
                                                   GroovyVideoMode::GV240p};
