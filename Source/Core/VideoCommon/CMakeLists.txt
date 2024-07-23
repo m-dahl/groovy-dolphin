@@ -106,6 +106,11 @@ add_library(videocommon
   LookUpTables.h
   Mister.cpp
   Mister.h
+  groovymister.cpp
+  groovymister.h
+  groovymister_wrapper.cpp
+  groovymister_wrapper.h
+  rio.h
   NativeVertexFormat.h
   NetPlayChatUI.cpp
   NetPlayChatUI.h

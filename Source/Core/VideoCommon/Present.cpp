@@ -723,9 +723,6 @@ void Presenter::Present()
     // Dump backbuffer contents to mister.
     const AbstractTexture* st = m_xfb_entry->texture.get();
 
-    // groovy mister fb
-    static char tmp_buffer[3 * 640 * 480];
-
     // Scale or render fb as is
     bool do_scaling = false;
 
@@ -767,7 +764,10 @@ void Presenter::Present()
                                                           AbstractTextureType::Texture_2DArray));
       }
       // Clear old buffer contents in case new render target is smaller.
-      memset(tmp_buffer, 0, sizeof(tmp_buffer));
+      if(g_mister.isInit()) {
+          char *gfb = g_mister.getPBufferBlit();
+          memset(gfb, 0, MISTER_VIDEO_BUFFER_SIZE);
+      }
     }
 
     // Copy render texture, scaling if needed
@@ -795,11 +795,11 @@ void Presenter::Present()
       int h = output->GetConfig().height;
       size_t stride = output->GetMappedStride();
 
-      if(!m_mister_init) {
+      if(!g_mister.isInit()) {
         // First run, set up groovy connection.
         std::string ip = Config::Get(Config::GFX_GROOVY_IP);
         printf("Groovy MiSTer connecting to: %s, backbuffer size: (%dx%d)\n", ip.c_str(),w,h);
-        g_mister.CmdInit(ip.c_str(), 32100, true, 48000, 2);
+        g_mister.Init(ip.c_str(), 32100, 1, 48000, 2, 0);
         auto mode = Config::Get(Config::GFX_GROOVY_VIDEO_MODE);
         if(h == 240 || mode == Config::GroovyVideoMode::GV240p) {
           // If the game is 240p native, use that regardless, otherwise we need to
@@ -813,27 +813,25 @@ void Presenter::Present()
           printf("Groovy MiSTer setting 480p video\n");
           g_mister.CmdSwitchres480p();
         }
-        m_mister_init = true;
-        g_mister.SetStartEmulate();
       } else {
         // Allow setting video mode on the fly.
         auto mode = Config::Get(Config::GFX_GROOVY_VIDEO_MODE);
+        auto mister_video = g_mister.getVideoMode();
         if(h > 240) { // Only care if we are not 240p native.
-          if(mode == Config::GroovyVideoMode::GV240p && (g_mister.isInterlaced() || g_mister.is480p())) {
+          if(mode == Config::GroovyVideoMode::GV240p && mister_video != V240p) {
             g_mister.CmdSwitchres240p();
-          } else if(mode == Config::GroovyVideoMode::GV480i && (!g_mister.isInterlaced() || g_mister.is480p())) {
+          } else if(mode == Config::GroovyVideoMode::GV480i && mister_video != V480i) {
             g_mister.CmdSwitchres480i();
-          } else if(mode == Config::GroovyVideoMode::GV480p && !g_mister.is480p()) {
+          } else if(mode == Config::GroovyVideoMode::GV480p && mister_video != V480p) {
             g_mister.CmdSwitchres480p();
           }
         }
       }
 
-      {
-        g_mister.SetEndEmulate();
-        g_mister.SetStartBlit();
+      if(g_mister.isInit()) {
+        char *gfb = g_mister.getPBufferBlit();
 
-        int y_inc = (h > 240 && !g_mister.is480p()) ? 2 : 1;
+        int y_inc = (h > 240 && g_mister.getVideoMode() != V480p) ? 2 : 1;
 
         // For now, just testing with known resolutions (no PAL)
         w = std::min(w, 640);
@@ -859,9 +857,9 @@ void Presenter::Present()
             int b = bytes[x*4 + (y+start_field)*stride + 2];
 
             int pixel = mister_left_offset + x + ((mister_top_offset + y)/y_inc) * 640;
-            tmp_buffer[3*pixel] = b;
-            tmp_buffer[3*pixel+1] = g;
-            tmp_buffer[3*pixel+2] = r;
+            gfb[3*pixel] = b;
+            gfb[3*pixel+1] = g;
+            gfb[3*pixel+2] = r;
           }
         }
 
@@ -870,17 +868,17 @@ void Presenter::Present()
         // Send audio data.
         {
           std::lock_guard<std::mutex> lock(g_mister.m_audio_buffer_mutex);
-          g_mister.CmdAudio(g_mister.m_audio_buffer.data(), (uint32_t)g_mister.audio_buffer_len, 2);
+          g_mister.Audio(g_mister.audio_buffer_len, 2);
           g_mister.audio_buffer_len = 0;
         }
 
         // Send video data
         bool hardcoded_vsync = Config::Get(Config::GFX_GROOVY_HARDCODED_VSYNC);
         int vsync = Config::Get(Config::GFX_GROOVY_VSYNC);
-        g_mister.CmdBlit((char *)&tmp_buffer[0], hardcoded_vsync?vsync:0);
-        g_mister.SetEndBlit();
+        g_mister.Blit(hardcoded_vsync?vsync:0);
+
+        // Sync with mister raster.
         g_mister.Sync();
-        g_mister.SetStartEmulate();
       }
     }
 
